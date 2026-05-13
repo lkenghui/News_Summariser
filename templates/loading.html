@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building Digest…</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      text-align: center;
+      padding: 24px;
+    }
+    .title {
+      font-family: Georgia, serif;
+      font-size: clamp(24px, 5vw, 42px);
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .title span { color: #f87171; }
+    .subtitle {
+      font-size: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #1e293b;
+      border-top-color: #f87171;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .message {
+      font-size: 15px;
+      color: #94a3b8;
+      max-width: 360px;
+      line-height: 1.7;
+    }
+    .message strong { color: #e2e8f0; }
+    .date { font-size: 13px; color: #475569; margin-top: 8px; }
+  </style>
+  <script>
+    // Poll /status every 4 seconds; redirect to / when job is done
+    function poll() {
+      fetch('/status')
+        .then(r => r.json())
+        .then(data => {
+          if (!data.running) {
+            window.location.href = '/';
+          } else {
+            setTimeout(poll, 4000);
+          }
+        })
+        .catch(() => setTimeout(poll, 4000));
+    }
+    setTimeout(poll, 4000);
+  </script>
+</head>
+<body>
+  <div class="title">The Morning<span>&nbsp;Digest</span></div>
+  <div class="subtitle">Science &amp; Technology Intelligence</div>
+  <div class="spinner"></div>
+  <div class="message">
+    <strong>Fetching &amp; summarising articles…</strong><br>
+    Claude is reading the latest from MIT Technology Review, Science, and Nature.
+    This takes about 60 seconds.
+  </div>
+  <div class="date">{{ date }}</div>
+</body>
+</html>
