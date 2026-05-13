@@ -14,6 +14,8 @@ from summarizer import summarize_articles
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+init_db()
+
 BATCH_SIZE = 15  # Max articles per Claude call
 
 
