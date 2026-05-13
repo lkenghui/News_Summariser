@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Morning Digest — {{ date }}</title>
+  <style>
+    /* ─── Reset & Base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      background: #f5f3ee;
+      color: #1a1a2e;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ─── Masthead ──────────────────────────────────────────── */
+    .masthead {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 0;
+    }
+    .masthead-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 28px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .masthead-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1;
+      color: #f8fafc;
+    }
+    .masthead-title span {
+      color: #f87171;
+    }
+    .masthead-subtitle {
+      font-size: 13px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    .masthead-date {
+      text-align: right;
+    }
+    .masthead-date .day {
+      font-family: Georgia, serif;
+      font-size: clamp(14px, 2vw, 18px);
+      color: #e2e8f0;
+    }
+    .masthead-date .sources {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ─── Source Pills in Masthead ──────────────────────────── */
+    .source-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .source-pill {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* ─── Stats Bar ─────────────────────────────────────────── */
+    .stats-bar {
+      background: #1e293b;
+      border-top: 1px solid #334155;
+    }
+    .stats-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .stats-text {
+      font-size: 12.5px;
+      color: #94a3b8;
+    }
+    .stats-text strong { color: #e2e8f0; }
+    .btn-refresh {
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      padding: 6px 16px;
+      border-radius: 6px;
+      background: #1d4ed8;
+      color: #eff6ff;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-refresh:hover { background: #2563eb; }
+
+    /* ─── Main Container ────────────────────────────────────── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+    }
+
+    /* ─── Empty State ───────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .empty-state .icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state h2 {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    .empty-state p { font-size: 15px; color: #6b7280; margin-bottom: 24px; }
+
+    /* ─── Topic Section ─────────────────────────────────────── */
+    .topic-section { margin-bottom: 52px; }
+    .topic-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #1a1a2e;
+    }
+    .topic-icon { font-size: 22px; line-height: 1; }
+    .topic-name {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+    .topic-count {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      background: #e2e8f0;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* ─── Article Grid ──────────────────────────────────────── */
+    .article-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    /* ─── Article Card ──────────────────────────────────────── */
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      border: 1px solid #f1f5f9;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .card-source {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+
+    .card-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(15px, 1.8vw, 17px);
+      font-weight: 700;
+      line-height: 1.4;
+      color: #0f172a;
+    }
+
+    .card-summary {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #374151;
+      flex-grow: 1;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+      margin-top: auto;
+    }
+    .card-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1d4ed8;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.12s;
+    }
+    .card-link:hover { color: #1e40af; }
+    .card-link::after { content: "→"; }
+
+    /* ─── Decorative divider between topics ────────────────── */
+    .topic-section + .topic-section {
+      padding-top: 4px;
+    }
+
+    /* ─── Footer ────────────────────────────────────────────── */
+    footer {
+      background: #0f172a;
+      color: #64748b;
+      padding: 24px;
+      text-align: center;
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+    footer strong { color: #94a3b8; }
+
+    /* ─── Responsive ────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .masthead-inner { flex-direction: column; align-items: flex-start; }
+      .masthead-date { text-align: left; }
+      .article-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Masthead ──────────────────────────────────────────── -->
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div>
+        <div class="masthead-title">The Morning<span>&nbsp;Digest</span></div>
+        <div class="masthead-subtitle">Science &amp; Technology Intelligence</div>
+        <div class="source-pills" style="margin-top:14px;">
+          <span class="source-pill" style="background:#e8393a;color:#fff;">MIT Technology Review</span>
+          <span class="source-pill" style="background:#0072b6;color:#fff;">Science</span>
+          <span class="source-pill" style="background:#2d6a4f;color:#fff;">Nature</span>
+        </div>
+      </div>
+      <div class="masthead-date">
+        <div class="day">{{ date }}</div>
+        <div class="sources">{{ total_articles }} article{% if total_articles != 1 %}s{% endif %} curated</div>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stats-inner">
+        <div class="stats-text">
+          {% if generated_at %}
+            Last updated: <strong>{{ generated_at }}</strong>
+          {% else %}
+            No digest available yet.
+          {% endif %}
+        </div>
+        <a href="/refresh" class="btn-refresh">↻ Refresh Feed</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ───────────────────────────────────────── -->
+  <main class="container">
+
+    {% if not groups %}
+      <div class="empty-state">
+        <div class="icon">☕</div>
+        <h2>Nothing new yet.</h2>
+        <p>All articles from your sources have already been seen.<br>Check back later or refresh to look for new content.</p>
+        <a href="/refresh" class="btn-refresh" style="display:inline-block;">↻ Check for new articles</a>
+      </div>
+
+    {% else %}
+      {% for topic, articles in groups.items() %}
+        <section class="topic-section">
+          <div class="topic-header">
+            <span class="topic-icon">{{ articles[0].topic_icon }}</span>
+            <span class="topic-name">{{ topic }}</span>
+            <span class="topic-count">{{ articles|length }} article{% if articles|length != 1 %}s{% endif %}</span>
+          </div>
+
+          <div class="article-grid">
+            {% for article in articles %}
+              <article class="card">
+                <span class="card-source"
+                      style="background:{{ article.source_color }};color:{{ article.source_text_color }};">
+                  {{ article.source }}
+                </span>
+
+                <h2 class="card-title">{{ article.title }}</h2>
+
+                <p class="card-summary">{{ article.summary }}</p>
+
+                <div class="card-footer">
+                  <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" class="card-link">
+                    Read original&nbsp;
+                  </a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    {% endif %}
+
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────── -->
+  <footer>
+    <strong>The Morning Digest</strong> — Summaries generated by Claude AI (Opus 4.6)<br>
+    Sources: MIT Technology Review · Science · Nature<br>
+    <span style="color:#475569;">Articles are deduplicated daily so you never see the same story twice.</span>
+  </footer>
+
+</body>
+</html>
