@@ -35,6 +35,8 @@ TOPIC_ICONS = {
 
 def get_client() -> OpenAI:
     global _client
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("OPENAI_API_KEY is not configured. Add it to .env to generate AI summaries.")
     if _client is None:
         _client = OpenAI()
     return _client
