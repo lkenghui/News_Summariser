@@ -4,7 +4,7 @@ import threading
 from datetime import datetime
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template
 
 load_dotenv()
 
@@ -17,10 +17,11 @@ app.secret_key = os.urandom(24)
 
 init_db()
 
-BATCH_SIZE = 10  # Max articles per Claude call
+BATCH_SIZE = 10  # Max articles per OpenAI call
 
 # Track background job state
 _job_running = False
+_job_message = "Ready."
 _job_lock = threading.Lock()
 
 
@@ -33,14 +34,17 @@ def _group_by_topic(articles: list[dict]) -> dict:
 
 
 def _run_digest_job():
-    global _job_running
+    global _job_running, _job_message
     try:
+        _job_message = "Checking feeds for new articles."
         all_articles = fetch_articles(max_per_feed=20)
         new_articles = [a for a in all_articles if not has_seen(a["url"])]
 
         if not new_articles:
+            _job_message = "No new articles found. Showing the latest saved digest."
             return
 
+        _job_message = f"Summarising {len(new_articles)} new articles."
         enriched: list[dict] = []
         for i in range(0, len(new_articles), BATCH_SIZE):
             batch = new_articles[i: i + BATCH_SIZE]
@@ -48,6 +52,7 @@ def _run_digest_job():
                 enriched.extend(summarize_articles(batch))
             except Exception as exc:
                 print(f"[summarizer] Batch {i // BATCH_SIZE + 1} failed: {exc}")
+                _job_message = "OpenAI summarisation was unavailable. Using source descriptions instead."
                 for a in batch:
                     enriched.append({
                         **a,
@@ -61,19 +66,22 @@ def _run_digest_job():
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         save_digest(json.dumps(enriched))
+        _job_message = f"Saved a new digest with {len(enriched)} articles at {now}."
     except Exception as exc:
         print(f"[digest job] Failed: {exc}")
+        _job_message = "Refresh failed. Showing the latest saved digest if available."
     finally:
         with _job_lock:
             _job_running = False
 
 
 def start_digest_job():
-    global _job_running
+    global _job_running, _job_message
     with _job_lock:
         if _job_running:
             return False
         _job_running = True
+        _job_message = "Starting refresh."
     t = threading.Thread(target=_run_digest_job, daemon=True)
     t.start()
     return True
@@ -109,7 +117,8 @@ def refresh():
 def status():
     with _job_lock:
         running = _job_running
-    return {"running": running}
+        message = _job_message
+    return {"running": running, "message": message}
 
 
 if __name__ == "__main__":

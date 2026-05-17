@@ -1,4 +1,11 @@
 venv/
+.venv/
 .env
 digest.db
 __pycache__/
+*.py[cod]
+*.db
+.DS_Store
+*.egg-info/
+dist/
+build/

@@ -1,7 +1,10 @@
 import json
-import anthropic
+import os
 
-client = anthropic.Anthropic()
+from openai import OpenAI
+
+_client = None
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.2")
 
 TOPICS = [
     "Artificial Intelligence",
@@ -30,8 +33,15 @@ TOPIC_ICONS = {
 }
 
 
+def get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI()
+    return _client
+
+
 def summarize_articles(articles: list[dict]) -> list[dict]:
-    """Call Claude to summarize articles and assign topics. Returns enriched articles."""
+    """Call OpenAI to summarize articles and assign topics. Returns enriched articles."""
     if not articles:
         return []
 
@@ -52,25 +62,70 @@ def summarize_articles(articles: list[dict]) -> list[dict]:
         f"1. A concise 2-3 sentence summary capturing the key insight or finding.\n"
         f"2. The single best-matching topic from: {topics_list}\n\n"
         f"{articles_text}\n"
-        f"Respond ONLY with a JSON array. Each element must have exactly these keys:\n"
-        f'  "index" (integer, 1-based), "summary" (string), "topic" (string)\n'
-        f"No markdown, no extra text — raw JSON only."
+        f"Return structured JSON only."
     )
 
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
+    response = get_client().responses.create(
+        model=OPENAI_MODEL,
+        input=[
+            {
+                "role": "system",
+                "content": (
+                    "You write accurate, concise science and technology news summaries. "
+                    "Use only the supplied article title, source, and preview. "
+                    "Choose exactly one topic from the provided topic list."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        max_output_tokens=4096,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "article_summaries",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "summaries": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "properties": {
+                                    "index": {
+                                        "type": "integer",
+                                        "description": "The 1-based article index from the input.",
+                                    },
+                                    "summary": {
+                                        "type": "string",
+                                        "description": "A concise 2-3 sentence summary.",
+                                    },
+                                    "topic": {
+                                        "type": "string",
+                                        "enum": TOPICS,
+                                    },
+                                },
+                                "required": ["index", "summary", "topic"],
+                            },
+                        }
+                    },
+                    "required": ["summaries"],
+                },
+            }
+        },
     )
 
-    raw = response.content[0].text.strip()
+    raw = response.output_text.strip()
 
     # Strip optional markdown fences
     if raw.startswith("```"):
         lines = raw.splitlines()
         raw = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
 
-    summaries = json.loads(raw)
+    summaries_payload = json.loads(raw)
+    summaries = summaries_payload.get("summaries", [])
     summary_map = {int(s["index"]): s for s in summaries}
 
     enriched = []
